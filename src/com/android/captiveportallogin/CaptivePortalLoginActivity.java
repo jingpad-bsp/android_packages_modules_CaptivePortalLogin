@@ -74,6 +74,9 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import android.webkit.DownloadListener;
+import android.content.ActivityNotFoundException;
+
 public class CaptivePortalLoginActivity extends Activity {
     private static final String TAG = CaptivePortalLoginActivity.class.getSimpleName();
     private static final boolean DBG = true;
@@ -180,6 +183,28 @@ public class CaptivePortalLoginActivity extends Activity {
         mWebViewClient = new MyWebViewClient();
         webview.setWebViewClient(mWebViewClient);
         webview.setWebChromeClient(new MyWebChromeClient());
+
+        webview.setDownloadListener(new DownloadListener() {
+            public void onDownloadStart(String url, String userAgent,
+            String contentDisposition, String mimetype, long contentLength){
+                Log.e(TAG, "onDownloadStart url:" + url + ";userAgent:" + userAgent
+                    + ";contentDisposition:" + contentDisposition + ";mimetype:" + mimetype
+                    + ";contentLength:" + contentLength);
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse(url));
+                intent.addCategory(Intent.CATEGORY_BROWSABLE);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		try {
+                    getApplicationContext().startActivity(intent);
+                    finishAndRemoveTask();
+                    /* @} */
+                } catch (ActivityNotFoundException ex) {
+                    Log.e(TAG, "No application can handle " + url);
+                }
+
+            }
+        });
+
         // Start initial page load so WebView finishes loading proxy settings.
         // Actual load of mUrl is initiated by MyWebViewClient.
         webview.loadData("", "text/html", null);
